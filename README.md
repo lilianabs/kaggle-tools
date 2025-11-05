@@ -1,4 +1,4 @@
-# kaggle-notebooks
+# kaggle-tools
 
 This repository contains the following notebooks that are useful for Kaggle competitions:
 
