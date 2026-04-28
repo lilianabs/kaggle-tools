@@ -315,3 +315,67 @@ def compute_categorical_summary(
 
     # Return summary DataFrame
     return pd.DataFrame(summary_stats)
+
+
+def plot_correlation_analysis(
+    data: pd.DataFrame,
+    numerical_features: list,
+    method: str = 'pearson',
+    threshold: float = 0.7,
+    figsize: tuple = (12, 10)
+) -> pd.DataFrame:
+    """
+    Plots the correlation analysis of numerical features.
+
+    Args:
+        data: Pandas DataFrame containing the dataset.
+        numerical_features: List of numerical column names.
+        method: Correlation method ('pearson', 'spearman', or 'kendall').
+        threshold: Threshold for highlighting highly correlated features.
+        figsize: Figure size for the heatmap.
+
+    Returns:
+        pd.DataFrame: Correlation matrix.
+    """
+    # Compute correlation matrix
+    data_subset = data[numerical_features]
+    corr_matrix = data_subset.corr(method=method)
+    
+    # Plot heatmap
+    plt.figure(figsize=figsize)
+    sns.heatmap(
+        corr_matrix,
+        annot=True,
+        fmt='.2f',
+        cmap='coolwarm',
+        center=0,
+        square=True,
+        linewidths=0.5,
+        cbar_kws={'shrink': 0.8}
+    )
+    plt.title(f'Correlation Matrix ({method.capitalize()})', fontsize=14)
+    plt.tight_layout()
+    plt.show()
+    
+    # Find highly correlated pairs
+    high_corr_pairs = []
+    for i in range(len(corr_matrix.columns)):
+        for j in range(i + 1, len(corr_matrix.columns)):
+            value = corr_matrix.iloc[i, j]
+            if pd.notnull(value) and abs(float(value)) >= threshold:
+                high_corr_pairs.append({
+                    'feature_1': corr_matrix.columns[i],
+                    'feature_2': corr_matrix.columns[j],
+                    'correlation': value
+                })
+    
+    # Print highly correlated pairs
+    if high_corr_pairs:
+        print(f"\n⚠️  Highly correlated pairs (|r| >= {threshold}):")
+        print("=" * 60)
+        for pair in high_corr_pairs:
+            print(f"  {pair['feature_1']} <-> {pair['feature_2']}: {pair['correlation']:.3f}")
+    else:
+        print(f"\n✓ No highly correlated pairs found (threshold: {threshold})")
+    
+    return corr_matrix
