@@ -76,7 +76,7 @@ def plot_categorical_distributions(
     plt.show()
 
 
-def plot_numeric_distribution(df: pd.DataFrame, column: str, bins: int = 30) -> None:
+def plot_numerical_distribution(df: pd.DataFrame, column: str, bins: int = 30) -> None:
     """Visualize the distribution of a numeric variable.
 
     Args:
