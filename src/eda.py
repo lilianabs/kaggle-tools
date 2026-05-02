@@ -16,7 +16,7 @@ def plot_categorical_distribution(df: pd.DataFrame, column: str, top_n: int = 10
     # Get value counts and limit to top_n
     value_counts = df[column].value_counts().head(top_n)
     
-    sns.barplot(x=value_counts.values, y=value_counts.index, palette='viridis')
+    sns.countplot(x=value_counts.values, y=value_counts.index, palette='viridis')
     plt.title(f'Distribution of {column}', fontsize=14)
     plt.xlabel('Count', fontsize=12)
     plt.ylabel(column, fontsize=12)
@@ -53,13 +53,16 @@ def plot_categorical_distributions(
     axes_flat = axes.flatten() if num_features > 1 else [axes]
     
     for idx, (ax, feature) in enumerate(zip(axes_flat[:num_features], categorical_features)):
-        # Get value counts and limit to top_n
-        value_counts = df[feature].value_counts().head(top_n)
+        # Get value counts and limit to top_n, then sort descending
+        value_counts = df[feature].value_counts().head(top_n).sort_values(ascending=False)
         
         # Calculate percentages
         percentages = (value_counts / len(df) * 100).round(2)
         
-        sns.barplot(x=value_counts.values, y=value_counts.index, ax=ax, palette='viridis')
+        # Create bar plot with a nicer palette and unique color per bar
+        colors = sns.color_palette("flare", len(value_counts))
+        ax.barh(value_counts.index, value_counts.values, color=colors, edgecolor='black')
+        ax.invert_yaxis()
         ax.set_title(f'Distribution of {feature}', fontsize=12)
         ax.set_xlabel('Count', fontsize=10)
         ax.set_ylabel(feature, fontsize=10)
@@ -244,6 +247,70 @@ def compute_numerical_summary(
 
     # Return summary DataFrame
     return pd.DataFrame(summary_stats)
+
+
+def plot_numerical_distribution_by_category(
+    df: pd.DataFrame,
+    numerical_features: list,
+    categorical_column: str,
+    plot_type: str = 'boxplot',
+    num_cols: int = 2,
+    figsize: tuple = None
+) -> None:
+    """
+    Plot the distribution of numerical variables grouped by a categorical variable.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        numerical_features (list): List of numerical column names to plot.
+        categorical_column (str): The name of the categorical column to group by.
+        plot_type (str): Type of plot ('boxplot' or 'violin'). Default is 'boxplot'.
+        num_cols (int): Number of columns for the subplot grid. Default is 2.
+        figsize (tuple): Figure size (width, height). If None, calculated automatically.
+    """
+    # Filter out features with all missing values
+    valid_features = [f for f in numerical_features if not df[f].isnull().all()]
+    
+    if len(valid_features) == 0:
+        print("No valid numerical features to plot.")
+        return
+    
+    num_features = len(valid_features)
+    num_rows = (num_features + num_cols - 1) // num_cols
+    
+    if figsize is None:
+        figsize = (6 * num_cols, 5 * num_rows)
+    
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
+    
+    # Handle single subplot case
+    if num_features == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    
+    for idx, feature in enumerate(valid_features):
+        ax = axes[idx]
+        
+        if plot_type == 'boxplot':
+            sns.boxplot(data=df, x=categorical_column, y=feature, palette='viridis', ax=ax)
+            ax.set_title(f'Boxplot of {feature} by {categorical_column}', fontsize=12)
+        elif plot_type == 'violin':
+            sns.violinplot(data=df, x=categorical_column, y=feature, palette='viridis', ax=ax)
+            ax.set_title(f'Violin Plot of {feature} by {categorical_column}', fontsize=12)
+        else:
+            raise ValueError("plot_type must be 'boxplot' or 'violin'")
+        
+        ax.set_xlabel(categorical_column, fontsize=10)
+        ax.set_ylabel(feature, fontsize=10)
+        ax.tick_params(axis='x', rotation=45)
+    
+    # Hide empty subplots
+    for idx in range(num_features, num_rows * num_cols):
+        axes[idx].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
 
 
 def compute_categorical_summary(
