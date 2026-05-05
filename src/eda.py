@@ -446,3 +446,78 @@ def plot_correlation_analysis(
         print(f"\n✓ No highly correlated pairs found (threshold: {threshold})")
     
     return corr_matrix
+
+
+def plot_categorical_distribution_by_category(
+    df: pd.DataFrame,
+    categorical_features: list,
+    groupby_column: list,
+    num_cols: int = 2,
+    figsize: tuple = None,
+    plot_type: str = 'count'
+) -> None:
+    """
+    Plot the distribution of categorical features grouped by one or more categorical variables.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        categorical_features (list): List of categorical column names to plot.
+        groupby_column (list): List of categorical column names to group by. If multiple columns provided, they are combined into a multi-index grouping.
+        num_cols (int): Number of columns for the subplot grid. Default is 2.
+        figsize (tuple): Figure size (width, height). If None, calculated automatically.
+        plot_type (str): Type of plot ('count' or 'percentage'). Default is 'count'.
+    """
+    # Ensure groupby_column is a list
+    if isinstance(groupby_column, str):
+        groupby_column = [groupby_column]
+    
+    # Filter out features with all missing values
+    valid_features = [f for f in categorical_features if not df[f].isnull().all()]
+    
+    if len(valid_features) == 0:
+        print("No valid categorical features to plot.")
+        return
+    
+    num_features = len(valid_features)
+    num_rows = (num_features + num_cols - 1) // num_cols
+    
+    if figsize is None:
+        figsize = (6 * num_cols, 5 * num_rows)
+    
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
+    
+    # Normalize axes to a flat list regardless of subplot shape
+    axes = axes.flatten() if hasattr(axes, 'flatten') else [axes]
+    
+    groupby_label = ', '.join(groupby_column)
+    groupby_data = df[groupby_column] if len(groupby_column) > 1 else df[groupby_column[0]]
+    
+    for idx, feature in enumerate(valid_features):
+        ax = axes[idx]
+        
+        # Create contingency table, grouped by one or multiple columns
+        contingency = pd.crosstab(df[feature], groupby_data)
+        
+        if plot_type == 'count':
+            contingency.plot(kind='bar', ax=ax, width=0.8)
+            ax.set_title(f'{feature} by {groupby_label} (Count)', fontsize=12)
+            ax.set_ylabel('Count', fontsize=10)
+        elif plot_type == 'percentage':
+            # Calculate percentage within each category
+            contingency_pct = contingency.div(contingency.sum(axis=1), axis=0) * 100
+            contingency_pct.plot(kind='bar', ax=ax, stacked=True, width=0.8)
+            ax.set_title(f'{feature} by {groupby_label} (Percentage)', fontsize=12)
+            ax.set_ylabel('Percentage', fontsize=10)
+        else:
+            raise ValueError("plot_type must be 'count' or 'percentage'")
+        
+        ax.set_xlabel(feature, fontsize=10)
+        ax.legend(title=groupby_label, fontsize=8, title_fontsize=9, loc='best')
+        ax.tick_params(axis='x', rotation=45)
+    
+    # Hide empty subplots
+    for idx in range(num_features, num_rows * num_cols):
+        axes[idx].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
