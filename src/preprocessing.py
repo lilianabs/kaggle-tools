@@ -1,20 +1,28 @@
 import pandas as pd
 
-
-def get_columns_with_missing_values(df: pd.DataFrame) -> pd.DataFrame:
-    """_summary_
+def get_numerical_and_categorical_features(
+    df: pd.DataFrame,
+    ignore_columns: list = None
+) -> tuple[list, list]:
+    """
+    Identify numerical and categorical features in a DataFrame.
 
     Args:
-        df (pd.DataFrame): _description_
+        df: Pandas DataFrame to analyze.
+        ignore_columns: List of column names to exclude from the analysis.
 
     Returns:
-        pd.DataFrame: _description_
+        tuple: (numerical_features, categorical_features)
     """
-    missing_values = pd.DataFrame(df.isna().sum() / df.shape[0])
-
-    missing_values.reset_index(inplace=True)
-    missing_values = missing_values.rename(columns = {'index':'feature',
-                                                                     0: 'prct_missing'})
- 
-    missing_values = missing_values[missing_values.prct_missing > 0].sort_values(by='prct_missing', ascending=False)
-    return missing_values
+    if ignore_columns is None:
+        ignore_columns = []
+    
+    # Get all numerical and categorical features
+    num_features = df.select_dtypes(include=["int64", "float64"]).columns.tolist()
+    cat_features = df.select_dtypes(include=["object"]).columns.tolist()
+    
+    # Filter out ignored columns
+    num_features = [col for col in num_features if col not in ignore_columns]
+    cat_features = [col for col in cat_features if col not in ignore_columns]
+    
+    return num_features, cat_features
